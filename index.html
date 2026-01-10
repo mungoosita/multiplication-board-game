@@ -1,139 +1,237 @@
-index.html
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Multiplication Board Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiplication Snakes & Ladders</title>
 
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-  }
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 10px;
+  touch-action: manipulation;
+}
 
-  #board {
-    display: grid;
-    grid-template-columns: repeat(10, 60px);
-    gap: 4px;
-    justify-content: center;
-    margin: 20px auto;
-  }
+#board {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  max-width: 700px;
+  margin: 15px auto;
+  gap: 4px;
+}
 
-  .cell {
-    width: 60px;
-    height: 60px;
-    border: 1px solid #999;
-    font-size: 12px;
-    padding: 4px;
-    box-sizing: border-box;
-    background: #f9f9f9;
-  }
+.cell {
+  border: 1px solid #aaa;
+  min-height: 65px;
+  font-size: 12px;
+  padding: 4px;
+  background: #f9f9f9;
+  position: relative;
+  border-radius: 6px;
+}
 
-  .player {
-    background: #ffd966;
-    border: 2px solid #f39c12;
-  }
+.snake {
+  background: #fdecea;
+}
 
-  #controls {
-    margin-top: 20px;
-  }
+.ladder {
+  background: #e8f5e9;
+}
 
-  input {
-    width: 80px;
-    font-size: 16px;
-    text-align: center;
-  }
+.icons {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 18px;
+}
+
+button {
+  font-size: 18px;
+  padding: 10px 18px;
+  margin: 6px;
+}
+
+input {
+  font-size: 18px;
+  width: 100px;
+  text-align: center;
+}
+
+#setup, #game {
+  margin-top: 15px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>Multiplication Board Game</h2>
+<h2>Multiplication Snakes & Ladders</h2>
 
-<div id="board"></div>
+<div id="setup">
+  <p>Number of players (1–4)</p>
+  <select id="playerCount" style="font-size:18px;">
+    <option>1</option><option>2</option><option>3</option><option>4</option>
+  </select>
 
-<div id="controls">
-  <p>Current Position: <span id="position">0</span></p>
+  <p>Players:</p>
+  <p>🐶 🐱 🐸 🦊</p>
+
+  <button onclick="startGame()">Start Game</button>
+</div>
+
+<div id="game" style="display:none;">
+  <p>Current player: <strong><span id="currentPlayer"></span></strong></p>
   <button onclick="rollDice()">🎲 Roll Dice</button>
   <p id="diceResult"></p>
 
   <p id="question"></p>
-
   <input type="number" id="answer" placeholder="Answer">
+  <br>
   <button onclick="checkAnswer()">Submit</button>
 
   <p id="message"></p>
+  <div id="board"></div>
 </div>
 
 <script>
+const icons = ["🐶", "🐱", "🐸", "🦊"];
+let players = [];
+let currentPlayerIndex = 0;
+let currentAnswer = null;
+let snakes = {};
+let ladders = {};
+let gameOver = false;
+
+function startGame() {
+  const count = Number(document.getElementById("playerCount").value);
+  players = [];
+  gameOver = false;
+
+  for (let i = 0; i < count; i++) {
+    players.push({ icon: icons[i], position: 0 });
+  }
+
+  generateSnakes();
+  generateLadders();
+  generateBoard();
+
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("game").style.display = "block";
+  updateTurn();
+}
+
+function generateSnakes() {
+  snakes = {};
+  for (let i = 0; i < 5; i++) {
+    let head = Math.floor(Math.random() * 40) + 50;
+    let tail = Math.floor(Math.random() * (head - 10)) + 1;
+    snakes[head] = tail;
+  }
+}
+
+function generateLadders() {
+  ladders = {};
+  for (let i = 0; i < 5; i++) {
+    let bottom = Math.floor(Math.random() * 40) + 1;
+    let top = Math.floor(Math.random() * (100 - bottom)) + bottom + 10;
+    ladders[bottom] = top;
+  }
+}
+
+function generateBoard() {
   const board = document.getElementById("board");
-  const positionDisplay = document.getElementById("position");
-  const questionDisplay = document.getElementById("question");
-  const messageDisplay = document.getElementById("message");
+  board.innerHTML = "";
 
-  let playerPosition = 0;
-  let currentAnswer = null;
-
-  // Generate board
   for (let i = 1; i <= 100; i++) {
     const cell = document.createElement("div");
     cell.className = "cell";
     cell.id = "cell-" + i;
 
-    const a = Math.floor(Math.random() * 9) + 2;
-    const b = Math.floor(Math.random() * 9) + 2;
+    const a = Math.floor(Math.random() * 11) + 2; // 2–12
+    const b = Math.floor(Math.random() * 11) + 2;
 
     cell.dataset.question = `${a} × ${b}`;
     cell.dataset.answer = a * b;
 
-    cell.innerHTML = `<strong>${i}</strong><br>${a}×${b}`;
+    if (snakes[i]) cell.classList.add("snake");
+    if (ladders[i]) cell.classList.add("ladder");
+
+    cell.innerHTML = `<strong>${i}</strong><br>${a}×${b}<div class="icons"></div>`;
     board.appendChild(cell);
   }
 
-  function updatePlayer() {
-    document.querySelectorAll(".cell").forEach(c => c.classList.remove("player"));
+  updateBoard();
+}
 
-    if (playerPosition > 0 && playerPosition <= 100) {
-      document.getElementById("cell-" + playerPosition).classList.add("player");
+function updateBoard() {
+  document.querySelectorAll(".icons").forEach(i => i.innerHTML = "");
+  players.forEach(p => {
+    if (p.position > 0) {
+      document.querySelector(`#cell-${p.position} .icons`).innerHTML += p.icon;
     }
+  });
+}
 
-    positionDisplay.textContent = playerPosition;
-  }
+function updateTurn() {
+  document.getElementById("currentPlayer").textContent = players[currentPlayerIndex].icon;
+}
 
-  function rollDice() {
-    const dice = Math.floor(Math.random() * 6) + 1;
-    document.getElementById("diceResult").textContent = "Dice rolled: " + dice;
+function rollDice() {
+  if (gameOver) return;
 
-    playerPosition += dice;
-    if (playerPosition > 100) playerPosition = 100;
+  const dice = Math.floor(Math.random() * 6) + 1;
+  document.getElementById("diceResult").textContent = "Dice: " + dice;
 
-    const cell = document.getElementById("cell-" + playerPosition);
-    questionDisplay.textContent = "Question: " + cell.dataset.question;
-    currentAnswer = cell.dataset.answer;
+  const player = players[currentPlayerIndex];
+  player.position += dice;
+  if (player.position > 100) player.position = 100;
 
-    updatePlayer();
-    messageDisplay.textContent = "";
-  }
+  const cell = document.getElementById("cell-" + player.position);
+  currentAnswer = cell.dataset.answer;
+  document.getElementById("question").textContent = "Question: " + cell.dataset.question;
 
-  function checkAnswer() {
-    const userAnswer = document.getElementById("answer").value;
+  updateBoard();
+}
 
-    if (userAnswer == currentAnswer) {
-      messageDisplay.textContent = "✅ Correct! Stay on this cell.";
+function checkAnswer() {
+  if (gameOver) return;
+
+  const player = players[currentPlayerIndex];
+  const userAnswer = document.getElementById("answer").value;
+
+  if (userAnswer == currentAnswer) {
+    if (ladders[player.position]) {
+      player.position = ladders[player.position];
+      document.getElementById("message").textContent = "🪜 Ladder! Climb up!";
+    } else if (snakes[player.position]) {
+      player.position = snakes[player.position];
+      document.getElementById("message").textContent = "🐍 Snake! Slide down!";
     } else {
-      messageDisplay.textContent = "❌ Wrong! Go back to start.";
-      playerPosition = 0;
-      questionDisplay.textContent = "";
-      updatePlayer();
+      document.getElementById("message").textContent = "✅ Correct!";
     }
-
-    document.getElementById("answer").value = "";
+  } else {
+    player.position = 0;
+    document.getElementById("message").textContent = "❌ Wrong! Back to start.";
   }
 
-  updatePlayer();
+  if (player.position === 100) {
+    document.getElementById("message").textContent =
+      `🎉 ${player.icon} wins!`;
+    gameOver = true;
+    updateBoard();
+    return;
+  }
+
+  document.getElementById("answer").value = "";
+  currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+
+  updateBoard();
+  updateTurn();
+}
 </script>
 
 </body>
 </html>
+
