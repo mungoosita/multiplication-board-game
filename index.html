@@ -1,0 +1,139 @@
+index.html
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Multiplication Board Game</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(10, 60px);
+    gap: 4px;
+    justify-content: center;
+    margin: 20px auto;
+  }
+
+  .cell {
+    width: 60px;
+    height: 60px;
+    border: 1px solid #999;
+    font-size: 12px;
+    padding: 4px;
+    box-sizing: border-box;
+    background: #f9f9f9;
+  }
+
+  .player {
+    background: #ffd966;
+    border: 2px solid #f39c12;
+  }
+
+  #controls {
+    margin-top: 20px;
+  }
+
+  input {
+    width: 80px;
+    font-size: 16px;
+    text-align: center;
+  }
+</style>
+</head>
+
+<body>
+
+<h2>Multiplication Board Game</h2>
+
+<div id="board"></div>
+
+<div id="controls">
+  <p>Current Position: <span id="position">0</span></p>
+  <button onclick="rollDice()">🎲 Roll Dice</button>
+  <p id="diceResult"></p>
+
+  <p id="question"></p>
+
+  <input type="number" id="answer" placeholder="Answer">
+  <button onclick="checkAnswer()">Submit</button>
+
+  <p id="message"></p>
+</div>
+
+<script>
+  const board = document.getElementById("board");
+  const positionDisplay = document.getElementById("position");
+  const questionDisplay = document.getElementById("question");
+  const messageDisplay = document.getElementById("message");
+
+  let playerPosition = 0;
+  let currentAnswer = null;
+
+  // Generate board
+  for (let i = 1; i <= 100; i++) {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.id = "cell-" + i;
+
+    const a = Math.floor(Math.random() * 9) + 2;
+    const b = Math.floor(Math.random() * 9) + 2;
+
+    cell.dataset.question = `${a} × ${b}`;
+    cell.dataset.answer = a * b;
+
+    cell.innerHTML = `<strong>${i}</strong><br>${a}×${b}`;
+    board.appendChild(cell);
+  }
+
+  function updatePlayer() {
+    document.querySelectorAll(".cell").forEach(c => c.classList.remove("player"));
+
+    if (playerPosition > 0 && playerPosition <= 100) {
+      document.getElementById("cell-" + playerPosition).classList.add("player");
+    }
+
+    positionDisplay.textContent = playerPosition;
+  }
+
+  function rollDice() {
+    const dice = Math.floor(Math.random() * 6) + 1;
+    document.getElementById("diceResult").textContent = "Dice rolled: " + dice;
+
+    playerPosition += dice;
+    if (playerPosition > 100) playerPosition = 100;
+
+    const cell = document.getElementById("cell-" + playerPosition);
+    questionDisplay.textContent = "Question: " + cell.dataset.question;
+    currentAnswer = cell.dataset.answer;
+
+    updatePlayer();
+    messageDisplay.textContent = "";
+  }
+
+  function checkAnswer() {
+    const userAnswer = document.getElementById("answer").value;
+
+    if (userAnswer == currentAnswer) {
+      messageDisplay.textContent = "✅ Correct! Stay on this cell.";
+    } else {
+      messageDisplay.textContent = "❌ Wrong! Go back to start.";
+      playerPosition = 0;
+      questionDisplay.textContent = "";
+      updatePlayer();
+    }
+
+    document.getElementById("answer").value = "";
+  }
+
+  updatePlayer();
+</script>
+
+</body>
+</html>
