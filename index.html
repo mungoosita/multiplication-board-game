@@ -96,6 +96,23 @@ input {
 </div>
 
 <script>
+
+  const sounds = {
+  dice: new Audio("dice.mp3"),
+  correct: new Audio("correct.mp3"),
+  wrong: new Audio("wrong.mp3"),
+  snake: new Audio("snake.mp3"),
+  ladder: new Audio("ladder.mp3"),
+  win: new Audio("win.mp3")
+};
+
+function playSound(name) {
+  if (sounds[name]) {
+    sounds[name].currentTime = 0;
+    sounds[name].play();
+  }
+}
+
 const icons = ["🐶", "🐱", "🐸", "🦊"];
 let players = [];
 let currentPlayerIndex = 0;
@@ -179,6 +196,8 @@ function updateTurn() {
 }
 
 function rollDice() {
+  playSound("dice");
+
   if (gameOver) return;
 
   const dice = Math.floor(Math.random() * 6) + 1;
@@ -201,22 +220,29 @@ function checkAnswer() {
   const player = players[currentPlayerIndex];
   const userAnswer = document.getElementById("answer").value;
 
-  if (userAnswer == currentAnswer) {
-    if (ladders[player.position]) {
-      player.position = ladders[player.position];
-      document.getElementById("message").textContent = "🪜 Ladder! Climb up!";
-    } else if (snakes[player.position]) {
-      player.position = snakes[player.position];
-      document.getElementById("message").textContent = "🐍 Snake! Slide down!";
-    } else {
-      document.getElementById("message").textContent = "✅ Correct!";
-    }
+if (userAnswer == currentAnswer) {
+  if (ladders[player.position]) {
+    player.position = ladders[player.position];
+    playSound("ladder");
+    document.getElementById("message").textContent = "🪜 Ladder! Climb up!";
+  } else if (snakes[player.position]) {
+    player.position = snakes[player.position];
+    playSound("snake");
+    document.getElementById("message").textContent = "🐍 Snake! Slide down!";
   } else {
-    player.position = 0;
-    document.getElementById("message").textContent = "❌ Wrong! Back to start.";
+    playSound("correct");
+    document.getElementById("message").textContent = "✅ Correct!";
   }
+} else {
+  playSound("wrong");
+  player.position = 0;
+  document.getElementById("message").textContent = "❌ Wrong! Back to start.";
+}
+
 
   if (player.position === 100) {
+    playSound("win");
+
     document.getElementById("message").textContent =
       `🎉 ${player.icon} wins!`;
     gameOver = true;
@@ -234,4 +260,5 @@ function checkAnswer() {
 
 </body>
 </html>
+
 
