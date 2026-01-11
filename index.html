@@ -17,27 +17,40 @@ body {
 #board {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
-  max-width: 700px;
+  max-width: 720px;
   margin: 15px auto;
   gap: 4px;
 }
 
 .cell {
-  border: 1px solid #aaa;
-  min-height: 65px;
+  border: 1px solid #999;
+  min-height: 70px;
   font-size: 12px;
   padding: 4px;
-  background: #f9f9f9;
   position: relative;
-  border-radius: 6px;
+  border-radius: 8px;
+  background: #f5f5f5;
+}
+
+.cell:nth-child(odd) { background: #fef6e4; }
+.cell:nth-child(even) { background: #e8f4f8; }
+
+.start {
+  background: #fff3cd !important;
+  font-weight: bold;
 }
 
 .snake {
-  background: #fdecea;
+  background: #fdecea !important;
 }
 
 .ladder {
-  background: #e8f5e9;
+  background: #e8f5e9 !important;
+}
+
+.finish {
+  background: #e1bee7 !important;
+  font-size: 14px;
 }
 
 .icons {
@@ -45,6 +58,13 @@ body {
   bottom: 2px;
   right: 4px;
   font-size: 18px;
+}
+
+.mark {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 16px;
 }
 
 button {
@@ -55,7 +75,7 @@ button {
 
 input {
   font-size: 18px;
-  width: 100px;
+  width: 120px;
   text-align: center;
 }
 
@@ -75,8 +95,7 @@ input {
     <option>1</option><option>2</option><option>3</option><option>4</option>
   </select>
 
-  <p>Players:</p>
-  <p>🐶 🐱 🐸 🦊</p>
+  <p>Players: 🐶 🐱 🐸 🦊</p>
 
   <button onclick="startGame()">Start Game</button>
 </div>
@@ -96,8 +115,7 @@ input {
 </div>
 
 <script>
-
-  const sounds = {
+const sounds = {
   dice: new Audio("dice.mp3"),
   correct: new Audio("correct.mp3"),
   wrong: new Audio("wrong.mp3"),
@@ -161,21 +179,44 @@ function generateBoard() {
   const board = document.getElementById("board");
   board.innerHTML = "";
 
+  // START cell
+  const startCell = document.createElement("div");
+  startCell.className = "cell start";
+  startCell.id = "cell-0";
+  startCell.innerHTML = `<strong>START</strong><div class="icons"></div>`;
+  board.appendChild(startCell);
+
   for (let i = 1; i <= 100; i++) {
     const cell = document.createElement("div");
     cell.className = "cell";
     cell.id = "cell-" + i;
 
-    const a = Math.floor(Math.random() * 11) + 2; // 2–12
-    const b = Math.floor(Math.random() * 11) + 2;
+    const a = Math.floor(Math.random() * 8) + 2;     // 2–9
+    const b = Math.floor(Math.random() * 90) + 10;   // 10–99
 
     cell.dataset.question = `${a} × ${b}`;
     cell.dataset.answer = a * b;
 
-    if (snakes[i]) cell.classList.add("snake");
-    if (ladders[i]) cell.classList.add("ladder");
+    let mark = "";
+    if (snakes[i]) {
+      cell.classList.add("snake");
+      mark = "🐍";
+    }
+    if (ladders[i]) {
+      cell.classList.add("ladder");
+      mark = "🪜";
+    }
+    if (i === 100) {
+      cell.classList.add("finish");
+      mark = "🎈🎈🎈";
+    }
 
-    cell.innerHTML = `<strong>${i}</strong><br>${a}×${b}<div class="icons"></div>`;
+    cell.innerHTML = `
+      <strong>${i}</strong>
+      <div>${a}×${b}</div>
+      <div class="mark">${mark}</div>
+      <div class="icons"></div>
+    `;
     board.appendChild(cell);
   }
 
@@ -184,21 +225,23 @@ function generateBoard() {
 
 function updateBoard() {
   document.querySelectorAll(".icons").forEach(i => i.innerHTML = "");
+
   players.forEach(p => {
-    if (p.position > 0) {
-      document.querySelector(`#cell-${p.position} .icons`).innerHTML += p.icon;
+    const cell = document.getElementById("cell-" + p.position);
+    if (cell) {
+      cell.querySelector(".icons").innerHTML += p.icon;
     }
   });
 }
 
 function updateTurn() {
-  document.getElementById("currentPlayer").textContent = players[currentPlayerIndex].icon;
+  document.getElementById("currentPlayer").textContent =
+    players[currentPlayerIndex].icon;
 }
 
 function rollDice() {
-  playSound("dice");
-
   if (gameOver) return;
+  playSound("dice");
 
   const dice = Math.floor(Math.random() * 6) + 1;
   document.getElementById("diceResult").textContent = "Dice: " + dice;
@@ -209,7 +252,8 @@ function rollDice() {
 
   const cell = document.getElementById("cell-" + player.position);
   currentAnswer = cell.dataset.answer;
-  document.getElementById("question").textContent = "Question: " + cell.dataset.question;
+  document.getElementById("question").textContent =
+    "Question: " + cell.dataset.question;
 
   updateBoard();
 }
@@ -220,29 +264,27 @@ function checkAnswer() {
   const player = players[currentPlayerIndex];
   const userAnswer = document.getElementById("answer").value;
 
-if (userAnswer == currentAnswer) {
-  if (ladders[player.position]) {
-    player.position = ladders[player.position];
-    playSound("ladder");
-    document.getElementById("message").textContent = "🪜 Ladder! Climb up!";
-  } else if (snakes[player.position]) {
-    player.position = snakes[player.position];
-    playSound("snake");
-    document.getElementById("message").textContent = "🐍 Snake! Slide down!";
+  if (userAnswer == currentAnswer) {
+    if (ladders[player.position]) {
+      player.position = ladders[player.position];
+      playSound("ladder");
+      document.getElementById("message").textContent = "🪜 Ladder! Climb up!";
+    } else if (snakes[player.position]) {
+      player.position = snakes[player.position];
+      playSound("snake");
+      document.getElementById("message").textContent = "🐍 Snake! Slide down!";
+    } else {
+      playSound("correct");
+      document.getElementById("message").textContent = "✅ Correct!";
+    }
   } else {
-    playSound("correct");
-    document.getElementById("message").textContent = "✅ Correct!";
+    playSound("wrong");
+    player.position = 0;
+    document.getElementById("message").textContent = "❌ Wrong! Back to START.";
   }
-} else {
-  playSound("wrong");
-  player.position = 0;
-  document.getElementById("message").textContent = "❌ Wrong! Back to start.";
-}
-
 
   if (player.position === 100) {
     playSound("win");
-
     document.getElementById("message").textContent =
       `🎉 ${player.icon} wins!`;
     gameOver = true;
@@ -252,7 +294,6 @@ if (userAnswer == currentAnswer) {
 
   document.getElementById("answer").value = "";
   currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-
   updateBoard();
   updateTurn();
 }
@@ -260,5 +301,4 @@ if (userAnswer == currentAnswer) {
 
 </body>
 </html>
-
 
